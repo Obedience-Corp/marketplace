@@ -1,0 +1,19 @@
+{
+  "id": "obedience-corp/official",
+  "name": "Obedience Corp Official Marketplace",
+  "description": "First-party Festival stack products and plugins.",
+  "homepage": "https://obediencecorp.com",
+  "schema_version": "1",
+  "namespace": "obedience-corp",
+  "packages": [
+    {
+      "id": "obedience-corp/festival",
+      "display_name": "Festival Suite",
+      "class": "product",
+      "summary": "The camp + fest CLI suite, released and versioned together.",
+      "host_runtimes": ["camp-cli", "fest-cli", "fest-extension"],
+      "channels": ["stable"],
+      "manifest_path": "packages/obedience-corp/festival/obey-package.json"
+    }
+  ]
+}
