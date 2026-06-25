@@ -47,11 +47,11 @@
   ],
   "releases": [
     {
-      "version": "0.2.10",
+      "version": "0.2.11",
       "channel": "stable",
-      "published_at": "2026-06-23T00:50:22Z",
+      "published_at": "",
       "components": {
-        "camp": "0.2.11",
+        "camp": "0.2.12",
         "fest": "0.4.5"
       },
       "compatibility": {
@@ -70,9 +70,9 @@
           "kind": "suite-archive",
           "os": "darwin",
           "arch": "all",
-          "filename": "festival-0.2.10-macOS-all.tar.gz",
-          "url": "https://github.com/Obedience-Corp/festival/releases/download/v0.2.10/festival-0.2.10-macOS-all.tar.gz",
-          "sha256": "4eab84d04cb088a8abf98bd740c0b20b685be5e8e6863c4752edc0d939f915a3",
+          "filename": "festival-0.2.11-macOS-all.tar.gz",
+          "url": "https://github.com/Obedience-Corp/festival/releases/download/v0.2.11/festival-0.2.11-macOS-all.tar.gz",
+          "sha256": "e2eda9439b0e53ab1d51be9756d2defe4d348500802c36bc8c70d3ba54f2e6fd",
           "binaries": [
             "camp",
             "fest"
@@ -82,9 +82,9 @@
           "kind": "suite-archive",
           "os": "linux",
           "arch": "amd64",
-          "filename": "festival-0.2.10-linux-x86_64.tar.gz",
-          "url": "https://github.com/Obedience-Corp/festival/releases/download/v0.2.10/festival-0.2.10-linux-x86_64.tar.gz",
-          "sha256": "faab388d34c7d1224c3a7d940256b45b1e52af9f89f8e72a1b50ef377a42d0aa",
+          "filename": "festival-0.2.11-linux-x86_64.tar.gz",
+          "url": "https://github.com/Obedience-Corp/festival/releases/download/v0.2.11/festival-0.2.11-linux-x86_64.tar.gz",
+          "sha256": "0c263ff94d7d5de3624afc37953d2059d0c26ee65ec86435b358a352647fc6e9",
           "binaries": [
             "camp",
             "fest"
@@ -94,9 +94,9 @@
           "kind": "suite-archive",
           "os": "linux",
           "arch": "arm64",
-          "filename": "festival-0.2.10-linux-arm64.tar.gz",
-          "url": "https://github.com/Obedience-Corp/festival/releases/download/v0.2.10/festival-0.2.10-linux-arm64.tar.gz",
-          "sha256": "2f92ec66886efd8a4eca34db169c49dff9408ab7c565dec7f8557e4ddd61302b",
+          "filename": "festival-0.2.11-linux-arm64.tar.gz",
+          "url": "https://github.com/Obedience-Corp/festival/releases/download/v0.2.11/festival-0.2.11-linux-arm64.tar.gz",
+          "sha256": "6794be89456a0c1a95c4ba15881b1674aa6285e91104c2ac71512c559736db46",
           "binaries": [
             "camp",
             "fest"
