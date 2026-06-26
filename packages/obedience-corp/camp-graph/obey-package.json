@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "id": "obedience-corp/camp-graph",
+  "class": "plugin",
+  "display_name": "Camp Graph",
+  "summary": "Knowledge graph visualization plugin for the camp CLI.",
+  "description": "camp-graph is a camp CLI plugin: installed as the binary camp-graph on PATH, it runs as `camp graph` to visualize campaign knowledge graphs.",
+  "homepage": "https://github.com/Obedience-Corp/camp-graph",
+  "licenses": ["FSL-1.1-ALv2"],
+  "tags": ["camp", "plugin", "graph", "visualization"],
+  "supported_scopes": ["user"],
+  "provides_binaries": ["camp-graph"],
+  "host_runtimes": [
+    { "runtime": "camp-cli", "display_name": "Camp CLI plugins", "features": [] }
+  ],
+  "targets": [
+    { "package": "obedience-corp/festival", "runtime": "camp-cli" }
+  ],
+  "releases": [
+    {
+      "version": "0.1.3",
+      "channel": "stable",
+      "published_at": "2026-04-20T13:01:54Z",
+      "compatibility": {
+        "os": ["darwin", "linux"],
+        "arch": ["amd64", "arm64"]
+      },
+      "dependencies": [],
+      "artifacts": [
+        {
+          "kind": "tar.gz",
+          "os": "darwin",
+          "arch": "arm64",
+          "url": "https://github.com/Obedience-Corp/camp-graph/releases/download/v0.1.3/camp-graph-0.1.3-macOS-arm64.tar.gz",
+          "sha256": "9e7beb8ee9ca9f599ee1bbb250be14d6a6bf2a1866d4993e923f6d94881d59dd",
+          "filename": "camp-graph-0.1.3-macOS-arm64.tar.gz",
+          "binaries": ["camp-graph"]
+        },
+        {
+          "kind": "tar.gz",
+          "os": "darwin",
+          "arch": "amd64",
+          "url": "https://github.com/Obedience-Corp/camp-graph/releases/download/v0.1.3/camp-graph-0.1.3-macOS-x86_64.tar.gz",
+          "sha256": "f341f6b27d44d3c27dccdb84a7ae25d48f94f5afc921595d83a8cb2d20ec470b",
+          "filename": "camp-graph-0.1.3-macOS-x86_64.tar.gz",
+          "binaries": ["camp-graph"]
+        },
+        {
+          "kind": "tar.gz",
+          "os": "linux",
+          "arch": "arm64",
+          "url": "https://github.com/Obedience-Corp/camp-graph/releases/download/v0.1.3/camp-graph-0.1.3-linux-arm64.tar.gz",
+          "sha256": "78d7737f61f6b05640ccc9dab9ab6442d807f7d5368f97bf0052e90ad638d12f",
+          "filename": "camp-graph-0.1.3-linux-arm64.tar.gz",
+          "binaries": ["camp-graph"]
+        },
+        {
+          "kind": "tar.gz",
+          "os": "linux",
+          "arch": "amd64",
+          "url": "https://github.com/Obedience-Corp/camp-graph/releases/download/v0.1.3/camp-graph-0.1.3-linux-x86_64.tar.gz",
+          "sha256": "aea24bf6601fc3d414831f2dae0965c31dd94aff643588852113671184aea77c",
+          "filename": "camp-graph-0.1.3-linux-x86_64.tar.gz",
+          "binaries": ["camp-graph"]
+        }
+      ],
+      "install": {
+        "entries": [
+          { "kind": "binary", "source": "camp-graph", "executable_name": "camp-graph" }
+        ]
+      }
+    }
+  ]
+}

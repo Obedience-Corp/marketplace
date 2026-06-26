@@ -14,6 +14,18 @@
       "host_runtimes": ["camp-cli", "fest-cli", "fest-extension"],
       "channels": ["stable"],
       "manifest_path": "packages/obedience-corp/festival/obey-package.json"
+    },
+    {
+      "id": "obedience-corp/camp-graph",
+      "display_name": "Camp Graph",
+      "class": "plugin",
+      "summary": "Knowledge graph visualization plugin for the camp CLI.",
+      "host_runtimes": ["camp-cli"],
+      "targets": [
+        { "package": "obedience-corp/festival", "runtime": "camp-cli" }
+      ],
+      "channels": ["stable"],
+      "manifest_path": "packages/obedience-corp/camp-graph/obey-package.json"
     }
   ]
 }

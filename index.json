@@ -2,6 +2,7 @@
   "source": "official-obey",
   "updatedAt": "2026-06-25T00:00:00Z",
   "packages": [
-    { "id": "obedience-corp/festival", "channels": ["stable"] }
+    { "id": "obedience-corp/festival", "channels": ["stable"] },
+    { "id": "obedience-corp/camp-graph", "channels": ["stable"] }
   ]
 }
