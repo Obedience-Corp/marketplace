@@ -25,7 +25,12 @@
         { "package": "obedience-corp/festival", "runtime": "camp-cli" }
       ],
       "channels": ["stable"],
-      "manifest_path": "packages/obedience-corp/camp-graph/obey-package.json"
+      "release_source": {
+        "type": "git",
+        "repo": "https://github.com/Obedience-Corp/camp-graph.git",
+        "asset_url": "https://github.com/Obedience-Corp/camp-graph/releases/download/{tag}/camp-graph-{version}-{os}-{arch}.tar.gz",
+        "checksums_url": "https://github.com/Obedience-Corp/camp-graph/releases/download/{tag}/checksums.txt"
+      }
     }
   ]
 }
