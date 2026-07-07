@@ -47,12 +47,12 @@
   ],
   "releases": [
     {
-      "version": "0.2.11",
+      "version": "0.2.12",
       "channel": "stable",
       "published_at": "",
       "components": {
-        "camp": "0.2.12",
-        "fest": "0.4.5"
+        "camp": "0.2.17",
+        "fest": "0.4.9"
       },
       "compatibility": {
         "os": [
@@ -70,9 +70,9 @@
           "kind": "suite-archive",
           "os": "darwin",
           "arch": "all",
-          "filename": "festival-0.2.11-macOS-all.tar.gz",
-          "url": "https://github.com/Obedience-Corp/festival/releases/download/v0.2.11/festival-0.2.11-macOS-all.tar.gz",
-          "sha256": "e2eda9439b0e53ab1d51be9756d2defe4d348500802c36bc8c70d3ba54f2e6fd",
+          "filename": "festival-0.2.12-macOS-all.tar.gz",
+          "url": "https://github.com/Obedience-Corp/festival/releases/download/v0.2.12/festival-0.2.12-macOS-all.tar.gz",
+          "sha256": "f97ed24c3e04f7eb21196f12a5f9bd16c6508f890447980e532c7fd157685044",
           "binaries": [
             "camp",
             "fest"
@@ -82,9 +82,9 @@
           "kind": "suite-archive",
           "os": "linux",
           "arch": "amd64",
-          "filename": "festival-0.2.11-linux-x86_64.tar.gz",
-          "url": "https://github.com/Obedience-Corp/festival/releases/download/v0.2.11/festival-0.2.11-linux-x86_64.tar.gz",
-          "sha256": "0c263ff94d7d5de3624afc37953d2059d0c26ee65ec86435b358a352647fc6e9",
+          "filename": "festival-0.2.12-linux-x86_64.tar.gz",
+          "url": "https://github.com/Obedience-Corp/festival/releases/download/v0.2.12/festival-0.2.12-linux-x86_64.tar.gz",
+          "sha256": "4a94cc0a487b617124b7c92ba304bd1f86f035f7d44c11440b862af9775748f8",
           "binaries": [
             "camp",
             "fest"
@@ -94,9 +94,9 @@
           "kind": "suite-archive",
           "os": "linux",
           "arch": "arm64",
-          "filename": "festival-0.2.11-linux-arm64.tar.gz",
-          "url": "https://github.com/Obedience-Corp/festival/releases/download/v0.2.11/festival-0.2.11-linux-arm64.tar.gz",
-          "sha256": "6794be89456a0c1a95c4ba15881b1674aa6285e91104c2ac71512c559736db46",
+          "filename": "festival-0.2.12-linux-arm64.tar.gz",
+          "url": "https://github.com/Obedience-Corp/festival/releases/download/v0.2.12/festival-0.2.12-linux-arm64.tar.gz",
+          "sha256": "5f301e805f31c440e73254e183ec8b620ee5b4d362a2ade902e55bdae1607faf",
           "binaries": [
             "camp",
             "fest"
