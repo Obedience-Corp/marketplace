@@ -1,69 +1,24 @@
 {
   "source": "official-obey",
-  "updatedAt": "2026-06-25T00:00:00Z",
+  "updatedAt": "2026-08-11T00:00:00Z",
   "packages": [
     {
       "id": "obedience-corp/festival",
-      "display_name": "Festival Suite",
-      "class": "product",
-      "summary": "The camp + fest CLI suite, released and versioned together.",
-      "host_runtimes": [
-        "camp-cli",
-        "fest-cli",
-        "fest-extension"
-      ],
       "channels": [
         "stable"
-      ],
-      "manifest_path": "packages/obedience-corp/festival/obey-package.json"
+      ]
     },
     {
       "id": "obedience-corp/camp-graph",
-      "display_name": "Camp Graph",
-      "class": "plugin",
-      "summary": "Knowledge graph visualization plugin for the camp CLI.",
-      "host_runtimes": [
-        "camp-cli"
-      ],
-      "targets": [
-        {
-          "package": "obedience-corp/festival",
-          "runtime": "camp-cli"
-        }
-      ],
       "channels": [
         "stable"
-      ],
-      "release_source": {
-        "type": "git",
-        "repo": "https://github.com/Obedience-Corp/camp-graph.git",
-        "asset_url": "https://github.com/Obedience-Corp/camp-graph/releases/download/{tag}/camp-graph-{version}-{os}-{arch}.tar.gz",
-        "checksums_url": "https://github.com/Obedience-Corp/camp-graph/releases/download/{tag}/checksums.txt"
-      }
+      ]
     },
     {
       "id": "obedience-corp/camp-buzz",
-      "display_name": "Camp Buzz",
-      "class": "plugin",
-      "summary": "Optional Buzz status projection plugin for camp (camp buzz doctor|post|bind|show).",
-      "host_runtimes": [
-        "camp-cli"
-      ],
-      "targets": [
-        {
-          "package": "obedience-corp/festival",
-          "runtime": "camp-cli"
-        }
-      ],
       "channels": [
         "stable"
-      ],
-      "release_source": {
-        "type": "git",
-        "repo": "https://github.com/Obedience-Corp/camp-buzz.git",
-        "asset_url": "https://github.com/Obedience-Corp/camp-buzz/releases/download/{tag}/camp-buzz-{version}-{os}-{arch}.tar.gz",
-        "checksums_url": "https://github.com/Obedience-Corp/camp-buzz/releases/download/{tag}/checksums.txt"
-      }
+      ]
     }
   ]
 }
