@@ -1,0 +1,22 @@
+name: Metadata
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.6"
+      - name: Verify package metadata signatures
+        run: go run ./tools/metadata verify
+      - name: Test metadata tooling
+        run: go test ./tools/metadata
