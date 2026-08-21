@@ -2,8 +2,15 @@ name: Metadata
 
 on:
   pull_request:
+    paths: &metadata_paths
+      - "packages/**"
+      - "obey-marketplace.json"
+      - "index.json"
+      - "tools/metadata/**"
+      - ".github/workflows/metadata.yml"
   push:
     branches: [main]
+    paths: *metadata_paths
 
 permissions:
   contents: read
@@ -19,4 +26,5 @@ jobs:
       - name: Verify package metadata signatures
         run: go run ./tools/metadata verify
       - name: Test metadata tooling
+        if: github.event_name == 'pull_request'
         run: go test ./tools/metadata
