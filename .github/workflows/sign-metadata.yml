@@ -1,17 +1,49 @@
 name: Sign metadata
 
 on:
+  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: write
-  pull-requests: write
+
+concurrency:
+  group: sign-metadata-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: false
 
 jobs:
   sign:
+    # Never let a fork pull request reach the signing secret: this key is the
+    # entire trust root pinned into the hub binary
+    # (festival-installer/internal/verify/trust.go:12-14), and a fork must
+    # never reach it. The fork guard alone does not cover same-repository
+    # pull requests: a same-repo PR branch can change tools/metadata/main.go
+    # or this workflow file itself, and it would still run with the real
+    # key. `environment: signing` below is meant to close that gap: once
+    # the "signing" GitHub Environment on this repository has a required
+    # reviewer configured (Settings > Environments > signing > Required
+    # reviewers, a repository-admin action), every run, same-repo or not,
+    # pauses for that reviewer's approval before the secret is ever
+    # exposed. Referencing the environment here does not create that
+    # protection by itself: GitHub auto-creates an environment with no
+    # protection rules the first time a workflow references a name that
+    # does not exist yet, so this line is a no-op until the required
+    # reviewer is actually added. Confirm with
+    # `gh api repos/Obedience-Corp/marketplace/environments --jq
+    # '.environments[0].protection_rules'` before relying on it; empty
+    # means unprotected.
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    environment: signing
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # actions/checkout@v4 checks out a merge commit in detached HEAD
+          # for pull_request events. Attach to the real branch instead, so
+          # the push below has somewhere to push onto.
+          ref: ${{ github.event.pull_request.head.ref || github.ref }}
       - uses: actions/setup-go@v5
         with:
           go-version: "1.25.6"
@@ -21,23 +53,47 @@ jobs:
         run: go run ./tools/metadata sign
       - name: Verify signatures
         run: go run ./tools/metadata verify
-      - name: Open signed metadata pull request
+      - name: Commit and push signatures
         env:
-          GH_TOKEN: ${{ github.token }}
-          SIGN_BRANCH: metadata-sign-${{ github.run_id }}
+          BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
         run: |
-          if [ -z "$(git status --porcelain -- packages)" ]; then
+          PATHS="packages obey-marketplace.json obey-marketplace.json.sig index.json index.json.sig"
+          # This check is not what actually stops the loop: GitHub does not
+          # run a new workflow for a push made with the default
+          # GITHUB_TOKEN (this job's push below included), so the
+          # pull_request: synchronize this push would otherwise cause never
+          # executes any jobs at all. Verified against a real run
+          # (results/task02-transcripts.md, run 32463067692, zero jobs). This
+          # check is still load-bearing for a different case: re-dispatching
+          # workflow_dispatch, or a human pushing again, against a branch
+          # whose signed files have not actually changed. Keep it.
+          # shellcheck disable=SC2086 # PATHS is a deliberately unquoted,
+          # space-separated list of pathspecs: it must word-split into
+          # separate `git` arguments, not one literal string.
+          if [ -z "$(git status --porcelain -- $PATHS)" ]; then
             echo "Metadata is already signed."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git switch -c "$SIGN_BRANCH"
-          git add packages
-          git commit -m "Sign marketplace metadata"
-          git push origin "$SIGN_BRANCH"
-          gh pr create \
-            --base main \
-            --head "$SIGN_BRANCH" \
-            --title "Sign marketplace metadata" \
-            --body "Canonicalizes and signs official package metadata with the protected repository key."
+          # shellcheck disable=SC2086 # same reason as above
+          git add $PATHS
+          git -c commit.gpgsign=false commit -m "Sign marketplace metadata"
+          # This job never pushes to main: there is no push trigger, only
+          # pull_request and workflow_dispatch, and workflow_dispatch is
+          # for one-off repairs against a branch, never main itself. The
+          # organization also forbids GITHUB_TOKEN from creating or
+          # approving pull requests (repos/Obedience-Corp/marketplace
+          # /actions/permissions/workflow returns 409 on that setting), so a
+          # push-a-branch-and-open-a-PR step could never succeed here
+          # anyway. main has branch protection (pull request required, the
+          # Metadata verify check required, enforced for admins), so a
+          # direct push to main would be rejected even if this job ever
+          # tried one.
+          #
+          # refs/heads/ is explicit rather than relying on the short name:
+          # a workflow_dispatch run against a tag ref would otherwise take
+          # BRANCH from github.ref_name (the tag's short name) and this
+          # push would move that tag instead of creating or updating a
+          # branch.
+          git push origin "HEAD:refs/heads/${BRANCH}"

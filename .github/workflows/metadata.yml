@@ -1,9 +1,24 @@
 name: Metadata
 
 on:
+  # No paths filter here: the verify job below becomes a required status
+  # check on main, and a required check that never runs for a pull request
+  # outside these paths would block that pull request forever. The
+  # repository is public, so the run is free; this is an amendment to
+  # ruling G3 (results/decisions.md), whose path-filtered pull_request
+  # recommendation was scoped to a private-repo cost concern that no longer
+  # applies now that verify gates the merge itself.
   pull_request:
   push:
     branches: [main]
+    paths:
+      - "packages/**"
+      - "obey-marketplace.json"
+      - "index.json"
+      - "tools/metadata/**"
+      - ".github/workflows/metadata.yml"
+      - "go.mod"
+      - "go.sum"
 
 permissions:
   contents: read
@@ -19,4 +34,5 @@ jobs:
       - name: Verify package metadata signatures
         run: go run ./tools/metadata verify
       - name: Test metadata tooling
+        if: github.event_name == 'pull_request'
         run: go test ./tools/metadata
