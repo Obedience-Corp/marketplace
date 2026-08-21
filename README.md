@@ -45,13 +45,22 @@ Signing happens automatically:
 - **Sign metadata** can also be run manually from the Actions tab against any
   branch.
 
-The **Metadata** workflow verifies every signed document on pull requests and
-on pushes to `main` that touch a signed file, `tools/metadata/**`, or the
-workflow itself.
+The **Metadata** workflow verifies every signed document, but only runs on a
+pull request or a push to `main` that touches a signed file,
+`tools/metadata/**`, `go.mod`, `go.sum`, or the workflow itself; it does not
+run on unrelated changes.
 
 To change a manifest by hand, edit it, open a pull request, and let the
 workflow canonicalize and sign it. Do not commit a signature you generated
 locally: the release key is not distributed.
+
+Note on trust: a same-repository pull request runs with the same
+`FESTIVAL_METADATA_SIGNING_KEY` secret the **Sign metadata** workflow always
+has, because GitHub builds that workflow from the pull request's own branch.
+Anyone who can open a pull request against this repository can change
+`tools/metadata` or the workflow file itself and have it run with that key.
+Treat push access to this repository as equivalent to holding the signing
+key.
 
 ### What signing does not cover
 

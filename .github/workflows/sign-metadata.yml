@@ -9,12 +9,22 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: sign-metadata-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: false
+
 jobs:
   sign:
     # Never let a fork pull request reach the signing secret: this key is the
     # entire trust root pinned into the hub binary
     # (festival-installer/internal/verify/trust.go:12-14), and a fork must
-    # never reach it.
+    # never reach it. This guard does not cover same-repository pull
+    # requests: a same-repo PR branch can change tools/metadata/main.go or
+    # this workflow file itself, and it still runs with the real key. That
+    # is a known, accepted-for-now tradeoff (ruling G1: a release opens a
+    # pull request that this same workflow signs), not an oversight; closing
+    # it needs a GitHub Environment with required reviewers gating the
+    # secret, which is a repository-admin setting change, not a code change.
     if: >-
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository
@@ -40,11 +50,15 @@ jobs:
           BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
         run: |
           PATHS="packages obey-marketplace.json obey-marketplace.json.sig index.json index.json.sig"
-          # Load-bearing for termination, not just tidy: signing a pull
-          # request branch pushes to it, which re-triggers this workflow via
-          # pull_request: synchronize. That re-run reaches this same check
-          # on a tree that is already canonical and signed and exits here
-          # before any second push, which is what stops the loop.
+          # This check is not what actually stops the loop: GitHub does not
+          # run a new workflow for a push made with the default
+          # GITHUB_TOKEN (this job's push below included), so the
+          # pull_request: synchronize this push would otherwise cause never
+          # executes any jobs at all. Verified against a real run
+          # (results/task02-transcripts.md, run 32463067692, zero jobs). This
+          # check is still load-bearing for a different case: re-dispatching
+          # workflow_dispatch, or a human pushing again, against a branch
+          # whose signed files have not actually changed. Keep it.
           if [ -z "$(git status --porcelain -- $PATHS)" ]; then
             echo "Metadata is already signed."
             exit 0
@@ -63,4 +77,10 @@ jobs:
           # directly is safe. If main ever gets branch protection, this step
           # needs to push a metadata-sign-<run id> branch and print a
           # compare URL in the job summary instead.
-          git push origin "HEAD:${BRANCH}"
+          #
+          # refs/heads/ is explicit rather than relying on the short name:
+          # a workflow_dispatch run against a tag ref would otherwise take
+          # BRANCH from github.ref_name (the tag's short name) and this
+          # push would move that tag instead of creating or updating a
+          # branch.
+          git push origin "HEAD:refs/heads/${BRANCH}"

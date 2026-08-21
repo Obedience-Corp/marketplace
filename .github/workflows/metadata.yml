@@ -8,6 +8,8 @@ on:
       - "index.json"
       - "tools/metadata/**"
       - ".github/workflows/metadata.yml"
+      - "go.mod"
+      - "go.sum"
   push:
     branches: [main]
     paths: *metadata_paths

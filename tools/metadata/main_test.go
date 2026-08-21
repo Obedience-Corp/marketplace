@@ -140,7 +140,13 @@ func TestVerifyAll_NonCanonical(t *testing.T) {
 	}
 }
 
-func TestVerifyAll_TamperedAfterSigning(t *testing.T) {
+// TestVerifyAll_TrailingByteFailsCanonicalCheck covers the case where a file
+// is mutated in a way that still parses as JSON but no longer round-trips
+// byte-for-byte through canonicalize(). This fails at the canonical-form
+// check, before signature verification ever runs; see
+// TestVerifyAll_TamperedCanonicalContent for the case that reaches the
+// signature check itself.
+func TestVerifyAll_TrailingByteFailsCanonicalCheck(t *testing.T) {
 	root := t.TempDir()
 	writeLayout(t, root, map[string]string{
 		"obey-marketplace.json": "{\n  \"z\": 2, \"a\": 1\n}\n",
@@ -162,13 +168,40 @@ func TestVerifyAll_TamperedAfterSigning(t *testing.T) {
 	if err := os.WriteFile(manifest, append(raw, ' '), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	// Appending a byte to an already-canonical file breaks the "is this
-	// canonical JSON" check before signature verification ever runs,
-	// because canonicalize() re-encodes and the trailing byte does not
-	// round-trip. That is the error this asserts.
 	err = verifyAll(root, "test-key", public)
 	if err == nil || !strings.Contains(err.Error(), "not canonical JSON") {
 		t.Fatalf("verifyAll() error = %v, want it to mention canonical JSON", err)
+	}
+}
+
+// TestVerifyAll_TamperedCanonicalContent covers content tampered with in a
+// way that is still valid, already-canonical JSON (so it passes the
+// canonical-form check) but does not match what was signed, so it must fail
+// at ed25519 signature verification specifically.
+func TestVerifyAll_TamperedCanonicalContent(t *testing.T) {
+	root := t.TempDir()
+	writeLayout(t, root, map[string]string{
+		"obey-marketplace.json": "{\n  \"z\": 2, \"a\": 1\n}\n",
+	})
+	pub, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	private := base64.StdEncoding.EncodeToString(priv)
+	public := base64.StdEncoding.EncodeToString(pub)
+	if err := signAll(root, "test-key", private); err != nil {
+		t.Fatalf("signAll: %v", err)
+	}
+	manifest := filepath.Join(root, "obey-marketplace.json")
+	// {"a":1,"z":3} is already canonical (sorted keys, no whitespace) but
+	// differs from the signed content, so this must fail at
+	// ed25519.Verify, not at the canonical-form check.
+	if err := os.WriteFile(manifest, []byte(`{"a":1,"z":3}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	err = verifyAll(root, "test-key", public)
+	if err == nil || !strings.Contains(err.Error(), "signature verification failed") {
+		t.Fatalf("verifyAll() error = %v, want it to mention signature verification failed", err)
 	}
 }
 
