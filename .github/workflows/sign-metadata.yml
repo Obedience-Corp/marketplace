@@ -2,8 +2,6 @@ name: Sign metadata
 
 on:
   pull_request:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -18,16 +16,18 @@ jobs:
     # Never let a fork pull request reach the signing secret: this key is the
     # entire trust root pinned into the hub binary
     # (festival-installer/internal/verify/trust.go:12-14), and a fork must
-    # never reach it. This guard does not cover same-repository pull
-    # requests: a same-repo PR branch can change tools/metadata/main.go or
-    # this workflow file itself, and it still runs with the real key. That
-    # is a known, accepted-for-now tradeoff (ruling G1: a release opens a
-    # pull request that this same workflow signs), not an oversight; closing
-    # it needs a GitHub Environment with required reviewers gating the
-    # secret, which is a repository-admin setting change, not a code change.
+    # never reach it. The fork guard alone does not cover same-repository
+    # pull requests: a same-repo PR branch can change tools/metadata/main.go
+    # or this workflow file itself, and it would still run with the real
+    # key. That gap is closed by `environment: signing` below, not by this
+    # guard: the "signing" GitHub Environment on this repository requires
+    # approval from lancekrogers before the job proceeds, so every run,
+    # same-repo or not, pauses for a human to look at what it is about to
+    # run before the secret is ever exposed.
     if: >-
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository
+    environment: signing
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -59,24 +59,29 @@ jobs:
           # check is still load-bearing for a different case: re-dispatching
           # workflow_dispatch, or a human pushing again, against a branch
           # whose signed files have not actually changed. Keep it.
+          # shellcheck disable=SC2086 # PATHS is a deliberately unquoted,
+          # space-separated list of pathspecs: it must word-split into
+          # separate `git` arguments, not one literal string.
           if [ -z "$(git status --porcelain -- $PATHS)" ]; then
             echo "Metadata is already signed."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # shellcheck disable=SC2086 # same reason as above
           git add $PATHS
           git -c commit.gpgsign=false commit -m "Sign marketplace metadata"
-          # Push straight to the branch, including main: the organization
-          # forbids GITHUB_TOKEN from creating or approving pull requests
-          # (repos/Obedience-Corp/marketplace/actions/permissions/workflow
-          # returns 409 on that setting), so a push-a-branch-and-open-a-PR
-          # step can never succeed here. Obedience-Corp/marketplace has no
-          # branch protection on main today (verified via the branches/main
-          # /protection API, 404 "Branch not protected"), so pushing
-          # directly is safe. If main ever gets branch protection, this step
-          # needs to push a metadata-sign-<run id> branch and print a
-          # compare URL in the job summary instead.
+          # This job never pushes to main: there is no push trigger, only
+          # pull_request and workflow_dispatch, and workflow_dispatch is
+          # for one-off repairs against a branch, never main itself. The
+          # organization also forbids GITHUB_TOKEN from creating or
+          # approving pull requests (repos/Obedience-Corp/marketplace
+          # /actions/permissions/workflow returns 409 on that setting), so a
+          # push-a-branch-and-open-a-PR step could never succeed here
+          # anyway. main has branch protection (pull request required, the
+          # Metadata verify check required, enforced for admins), so a
+          # direct push to main would be rejected even if this job ever
+          # tried one.
           #
           # refs/heads/ is explicit rather than relying on the short name:
           # a workflow_dispatch run against a tag ref would otherwise take

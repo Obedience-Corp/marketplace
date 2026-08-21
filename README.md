@@ -36,31 +36,33 @@ Signing happens automatically:
   and signs all three document classes and, if that changes anything, pushes
   the signatures onto the pull request branch itself. If nothing changed it
   exits without pushing, which is also what stops it from looping on the
-  push it just made.
-- On a push to `main`, the same workflow runs as a backstop and pushes the
-  signed commit directly onto `main`. It does not open a pull request:
-  Obedience-Corp does not allow GitHub Actions to create or approve pull
-  requests, and `main` has no branch protection today, so a direct push is
-  the working path.
+  push it just made. The job requires approval in the `signing` GitHub
+  Environment before it runs; see the trust note below.
 - **Sign metadata** can also be run manually from the Actions tab against any
-  branch.
+  branch (also gated by the same environment approval). There is no
+  push-to-`main` trigger: `main` is protected and only accepts pull
+  requests, so there is nothing for a push-triggered backstop to do.
 
-The **Metadata** workflow verifies every signed document, but only runs on a
-pull request or a push to `main` that touches a signed file,
-`tools/metadata/**`, `go.mod`, `go.sum`, or the workflow itself; it does not
-run on unrelated changes.
+The **Metadata** workflow verifies every signed document on every pull
+request, and again on every push to `main` that touches a signed file,
+`tools/metadata/**`, `go.mod`, `go.sum`, or the workflow itself. Its `verify`
+check is required on `main`, so a pull request cannot merge without it
+passing.
 
 To change a manifest by hand, edit it, open a pull request, and let the
 workflow canonicalize and sign it. Do not commit a signature you generated
 locally: the release key is not distributed.
 
-Note on trust: a same-repository pull request runs with the same
-`FESTIVAL_METADATA_SIGNING_KEY` secret the **Sign metadata** workflow always
-has, because GitHub builds that workflow from the pull request's own branch.
-Anyone who can open a pull request against this repository can change
-`tools/metadata` or the workflow file itself and have it run with that key.
-Treat push access to this repository as equivalent to holding the signing
-key.
+Note on trust: signing a document requires two things together, both
+enforced by GitHub rather than by this repository's code. First, a
+same-repository branch: GitHub builds the **Sign metadata** workflow from
+the pull request's own branch, so a fork can never reach the signing secret
+(the workflow also checks this explicitly). Second, approval of the
+`signing` GitHub Environment by its required reviewer: every run of the
+signing job, same-repository or not, pauses until a human approves it before
+`FESTIVAL_METADATA_SIGNING_KEY` is exposed to any job step. Separately,
+`main` accepts only pull requests whose `verify` check has passed; nothing,
+including this repository's own workflows, pushes to `main` directly.
 
 ### What signing does not cover
 
