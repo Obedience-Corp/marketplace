@@ -31,14 +31,14 @@ type detachedSignature struct {
 
 func main() {
 	if len(os.Args) != 2 || (os.Args[1] != "sign" && os.Args[1] != "verify") {
-		fmt.Fprintln(os.Stderr, "usage: go run .github/scripts/metadata.go <sign|verify>")
+		fmt.Fprintln(os.Stderr, "usage: go run ./tools/metadata <sign|verify>")
 		os.Exit(2)
 	}
 	var err error
 	if os.Args[1] == "sign" {
-		err = signAll("packages", officialKeyID, os.Getenv(privateKeyEnv))
+		err = signAll(".", officialKeyID, os.Getenv(privateKeyEnv))
 	} else {
-		err = verifyOfficial("packages")
+		err = verifyOfficial(".")
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -51,7 +51,7 @@ func signAll(root, keyID, encodedPrivate string) error {
 	if err != nil {
 		return err
 	}
-	return walkManifests(root, func(path string) error {
+	return forEachTarget(root, func(path string) error {
 		raw, err := os.ReadFile(path)
 		if err != nil {
 			return fmt.Errorf("read %s: %w", path, err)
@@ -99,7 +99,7 @@ func verifyAll(root, keyID, encodedPublic string) error {
 	if err != nil || len(pubRaw) != ed25519.PublicKeySize {
 		return errors.New("public key is invalid")
 	}
-	return walkManifests(root, func(path string) error {
+	return forEachTarget(root, func(path string) error {
 		manifest, err := os.ReadFile(path)
 		if err != nil {
 			return fmt.Errorf("read %s: %w", path, err)
@@ -134,23 +134,59 @@ func verifyAll(root, keyID, encodedPublic string) error {
 	})
 }
 
-func walkManifests(root string, fn func(path string) error) error {
-	count := 0
-	err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, walkErr error) error {
+// targets returns every metadata document that must carry a detached
+// signature, in a stable order: the two root documents first, then every
+// package manifest in path order. Only these three classes are signed; keys/
+// and tools/ are never signing targets.
+//
+// The root files are optional but the set is not: a repository with neither
+// root file and no packages is an error (the old "no targets found" guard),
+// but a repository with packages and no index.json is fine, because
+// index.json is not required by any schema the hub enforces.
+func targets(root string) ([]string, error) {
+	var out []string
+
+	for _, name := range []string{"obey-marketplace.json", "index.json"} {
+		p := filepath.Join(root, name)
+		if _, err := os.Stat(p); err == nil {
+			out = append(out, p)
+		} else if !errors.Is(err, fs.ErrNotExist) {
+			return nil, fmt.Errorf("stat %s: %w", p, err)
+		}
+	}
+
+	pkgRoot := filepath.Join(root, "packages")
+	err := filepath.WalkDir(pkgRoot, func(path string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
+			if errors.Is(walkErr, fs.ErrNotExist) && path == pkgRoot {
+				return fs.SkipAll
+			}
 			return walkErr
 		}
 		if entry.IsDir() || entry.Name() != "obey-package.json" {
 			return nil
 		}
-		count++
-		return fn(path)
+		out = append(out, path)
+		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
+	if len(out) == 0 {
+		return nil, errors.New("no metadata documents found")
+	}
+	return out, nil
+}
+
+func forEachTarget(root string, fn func(path string) error) error {
+	paths, err := targets(root)
 	if err != nil {
 		return err
 	}
-	if count == 0 {
-		return errors.New("no package manifests found")
+	for _, p := range paths {
+		if err := fn(p); err != nil {
+			return err
+		}
 	}
 	return nil
 }
