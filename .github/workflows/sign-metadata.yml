@@ -19,11 +19,19 @@ jobs:
     # never reach it. The fork guard alone does not cover same-repository
     # pull requests: a same-repo PR branch can change tools/metadata/main.go
     # or this workflow file itself, and it would still run with the real
-    # key. That gap is closed by `environment: signing` below, not by this
-    # guard: the "signing" GitHub Environment on this repository requires
-    # approval from lancekrogers before the job proceeds, so every run,
-    # same-repo or not, pauses for a human to look at what it is about to
-    # run before the secret is ever exposed.
+    # key. `environment: signing` below is meant to close that gap: once
+    # the "signing" GitHub Environment on this repository has a required
+    # reviewer configured (Settings > Environments > signing > Required
+    # reviewers, a repository-admin action), every run, same-repo or not,
+    # pauses for that reviewer's approval before the secret is ever
+    # exposed. Referencing the environment here does not create that
+    # protection by itself: GitHub auto-creates an environment with no
+    # protection rules the first time a workflow references a name that
+    # does not exist yet, so this line is a no-op until the required
+    # reviewer is actually added. Confirm with
+    # `gh api repos/Obedience-Corp/marketplace/environments --jq
+    # '.environments[0].protection_rules'` before relying on it; empty
+    # means unprotected.
     if: >-
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository

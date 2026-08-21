@@ -53,16 +53,25 @@ To change a manifest by hand, edit it, open a pull request, and let the
 workflow canonicalize and sign it. Do not commit a signature you generated
 locally: the release key is not distributed.
 
-Note on trust: signing a document requires two things together, both
-enforced by GitHub rather than by this repository's code. First, a
-same-repository branch: GitHub builds the **Sign metadata** workflow from
-the pull request's own branch, so a fork can never reach the signing secret
-(the workflow also checks this explicitly). Second, approval of the
-`signing` GitHub Environment by its required reviewer: every run of the
-signing job, same-repository or not, pauses until a human approves it before
-`FESTIVAL_METADATA_SIGNING_KEY` is exposed to any job step. Separately,
-`main` accepts only pull requests whose `verify` check has passed; nothing,
-including this repository's own workflows, pushes to `main` directly.
+Note on trust: signing a document is meant to require two things together.
+First, a same-repository branch: GitHub builds the **Sign metadata**
+workflow from the pull request's own branch, so a fork can never reach the
+signing secret (the workflow also checks this explicitly, and this part is
+live today). Second, approval of the `signing` GitHub Environment by its
+required reviewer: once that reviewer is configured (Settings >
+Environments > `signing` > Required reviewers, a repository-admin action),
+every run of the signing job, same-repository or not, pauses until a human
+approves it before `FESTIVAL_METADATA_SIGNING_KEY` is exposed to any job
+step. **That second control is not live until a required reviewer is added.**
+Referencing an environment in a workflow does not protect anything by
+itself: GitHub auto-creates an environment with no protection rules the
+first time a workflow references a name that does not already exist, and an
+environment with no protection rules blocks nothing. Check
+`gh api repos/Obedience-Corp/marketplace/environments --jq
+'.environments[0].protection_rules'` before assuming this control is active;
+an empty result means it is not. Separately, `main` accepts only pull
+requests whose `verify` check has passed; nothing, including this
+repository's own workflows, pushes to `main` directly.
 
 ### What signing does not cover
 
