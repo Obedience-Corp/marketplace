@@ -9,6 +9,11 @@ on:
   # recommendation was scoped to a private-repo cost concern that no longer
   # applies now that verify gates the merge itself.
   pull_request:
+  # Sign metadata dispatches this after it pushes signatures. A GITHUB_TOKEN
+  # push does not produce a usable pull_request verify run (queued
+  # action_required, zero jobs); workflow_dispatch is the documented
+  # exception. Must be present on the default branch to be dispatchable.
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
@@ -34,5 +39,5 @@ jobs:
       - name: Verify package metadata signatures
         run: go run ./tools/metadata verify
       - name: Test metadata tooling
-        if: github.event_name == 'pull_request'
+        if: github.event_name != 'push'
         run: go test ./tools/metadata

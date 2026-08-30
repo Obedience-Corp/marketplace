@@ -32,46 +32,46 @@ than a key it downloads.
 
 Signing happens automatically:
 
-- The **Sign metadata** workflow runs on every pull request. It canonicalizes
-  and signs all three document classes and, if that changes anything, pushes
-  the signatures onto the pull request branch itself. If nothing changed it
-  exits without pushing, which is also what stops it from looping on the
-  push it just made. The job requires approval in the `signing` GitHub
-  Environment before it runs; see the trust note below.
+- The **Sign metadata** workflow runs on every same-repository pull request.
+  A `gate` job verifies without the private key. If signatures already
+  match, signing is skipped and the `signing` environment is not requested.
+  If they do not, `sign` waits for approval in that environment, then
+  canonicalizes, signs, and pushes onto the pull request branch.
+- After a successful `sign`, the workflow dispatches **Metadata**
+  (`workflow_dispatch`) against the same branch. That is what records the
+  required `verify` check on the signed commit. Do not approve the
+  `github-actions[bot]` pull_request runs that appear as `action_required`
+  after the signature push: they have no jobs and are not the required
+  check. The one intended click is the `signing` environment review.
 - **Sign metadata** can also be run manually from the Actions tab against any
-  branch (also gated by the same environment approval). There is no
-  push-to-`main` trigger: `main` is protected and only accepts pull
-  requests, so there is nothing for a push-triggered backstop to do.
+  branch (also gated by the same environment approval when signing is
+  needed). There is no push-to-`main` trigger: `main` is protected and only
+  accepts pull requests, so there is nothing for a push-triggered backstop
+  to do.
 
 The **Metadata** workflow verifies every signed document on every pull
-request, and again on every push to `main` that touches a signed file,
-`tools/metadata/**`, `go.mod`, `go.sum`, or the workflow itself. Its `verify`
-check is required on `main`, so a pull request cannot merge without it
-passing.
+request, on `workflow_dispatch`, and again on every push to `main` that
+touches a signed file, `tools/metadata/**`, `go.mod`, `go.sum`, or the
+workflow itself. Its `verify` check is required on `main`, so a pull
+request cannot merge without it passing.
 
 To change a manifest by hand, edit it, open a pull request, and let the
 workflow canonicalize and sign it. Do not commit a signature you generated
 locally: the release key is not distributed.
 
-Note on trust: signing a document is meant to require two things together.
-First, a same-repository branch: GitHub builds the **Sign metadata**
-workflow from the pull request's own branch, so a fork can never reach the
-signing secret (the workflow also checks this explicitly, and this part is
-live today). Second, approval of the `signing` GitHub Environment by its
-required reviewer: once that reviewer is configured (Settings >
-Environments > `signing` > Required reviewers, a repository-admin action),
-every run of the signing job, same-repository or not, pauses until a human
-approves it before `FESTIVAL_METADATA_SIGNING_KEY` is exposed to any job
-step. **That second control is not live until a required reviewer is added.**
-Referencing an environment in a workflow does not protect anything by
-itself: GitHub auto-creates an environment with no protection rules the
-first time a workflow references a name that does not already exist, and an
-environment with no protection rules blocks nothing. Check
+Note on trust: signing a document requires two things together. First, a
+same-repository branch: GitHub builds the **Sign metadata** workflow from
+the pull request's own branch, so a fork can never reach the signing secret
+(the workflow also checks this explicitly). Second, approval of the
+`signing` GitHub Environment by its required reviewer before
+`FESTIVAL_METADATA_SIGNING_KEY` is exposed to any job step. That reviewer
+is configured; confirm with
 `gh api repos/Obedience-Corp/marketplace/environments --jq
-'.environments[0].protection_rules'` before assuming this control is active;
-an empty result means it is not. Separately, `main` accepts only pull
-requests whose `verify` check has passed; nothing, including this
-repository's own workflows, pushes to `main` directly.
+'.environments[].protection_rules'` if the pause-for-approval behavior
+ever disappears. An empty result means the environment is unprotected.
+Separately, `main` accepts only pull requests whose `verify` check has
+passed; nothing, including this repository's own workflows, pushes to
+`main` directly.
 
 ### What signing does not cover
 
