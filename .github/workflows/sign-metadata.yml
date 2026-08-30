@@ -6,35 +6,57 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: sign-metadata-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
+  # Check signatures without the signing secret or the `signing` environment.
+  # Unsigned release PRs proceed to `sign` (which waits for the reviewer).
+  # Already-signed PRs skip `sign` entirely, so a YAML-only change and a
+  # github-actions[bot] follow-up run do not ask for a second environment
+  # approval.
+  gate:
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    outputs:
+      needs_sign: ${{ steps.check.outputs.needs_sign }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref }}
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.6"
+      - id: check
+        name: Check whether signatures already verify
+        run: |
+          if go run ./tools/metadata verify; then
+            echo "needs_sign=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "needs_sign=true" >> "$GITHUB_OUTPUT"
+          fi
+
   sign:
     # Never let a fork pull request reach the signing secret: this key is the
     # entire trust root pinned into the hub binary
     # (festival-installer/internal/verify/trust.go:12-14), and a fork must
-    # never reach it. The fork guard alone does not cover same-repository
-    # pull requests: a same-repo PR branch can change tools/metadata/main.go
-    # or this workflow file itself, and it would still run with the real
-    # key. `environment: signing` below is meant to close that gap: once
-    # the "signing" GitHub Environment on this repository has a required
-    # reviewer configured (Settings > Environments > signing > Required
-    # reviewers, a repository-admin action), every run, same-repo or not,
-    # pauses for that reviewer's approval before the secret is ever
-    # exposed. Referencing the environment here does not create that
-    # protection by itself: GitHub auto-creates an environment with no
-    # protection rules the first time a workflow references a name that
-    # does not exist yet, so this line is a no-op until the required
-    # reviewer is actually added. Confirm with
+    # never reach it. The fork guard is on `gate` as well; it is repeated
+    # here so a future edit cannot attach the environment to a fork job.
+    # The `signing` environment has required reviewers configured
+    # (Settings > Environments > signing). Confirm with
     # `gh api repos/Obedience-Corp/marketplace/environments --jq
-    # '.environments[0].protection_rules'` before relying on it; empty
+    # '.environments[].protection_rules'` before relying on it; empty
     # means unprotected.
+    needs: gate
     if: >-
-      github.event_name != 'pull_request' ||
-      github.event.pull_request.head.repo.full_name == github.repository
+      needs.gate.outputs.needs_sign == 'true' &&
+      (github.event_name != 'pull_request' ||
+       github.event.pull_request.head.repo.full_name == github.repository)
     environment: signing
     runs-on: ubuntu-latest
     steps:
@@ -58,15 +80,6 @@ jobs:
           BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
         run: |
           PATHS="packages obey-marketplace.json obey-marketplace.json.sig index.json index.json.sig"
-          # This check is not what actually stops the loop: GitHub does not
-          # run a new workflow for a push made with the default
-          # GITHUB_TOKEN (this job's push below included), so the
-          # pull_request: synchronize this push would otherwise cause never
-          # executes any jobs at all. Verified against a real run
-          # (results/task02-transcripts.md, run 32463067692, zero jobs). This
-          # check is still load-bearing for a different case: re-dispatching
-          # workflow_dispatch, or a human pushing again, against a branch
-          # whose signed files have not actually changed. Keep it.
           # shellcheck disable=SC2086 # PATHS is a deliberately unquoted,
           # space-separated list of pathspecs: it must word-split into
           # separate `git` arguments, not one literal string.
@@ -97,3 +110,35 @@ jobs:
           # push would move that tag instead of creating or updating a
           # branch.
           git push origin "HEAD:refs/heads/${BRANCH}"
+
+  # A GITHUB_TOKEN push of the signature commit does create a pull_request
+  # synchronize, but since mid-2026 GitHub queues those runs as
+  # first-time-contributor `action_required` with zero jobs. They do not
+  # record the required `verify` check. workflow_dispatch is the documented
+  # GITHUB_TOKEN exception that still creates a real run; required checks
+  # are SHA-based, so dispatching Metadata against this branch records
+  # `verify` on the signed head.
+  #
+  # This job is skipped when `sign` is skipped (already signed), so a
+  # YAML-only PR does not dispatch a second Metadata run. If dispatch
+  # fails after a successful sign, re-run failed jobs: `gate`/`sign`
+  # outputs stay as they were and this job retries.
+  dispatch_verify:
+    name: dispatch-verify
+    needs: [gate, sign]
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
+    steps:
+      - name: Dispatch Metadata verify on the signed branch
+        run: |
+          set -euo pipefail
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            msg="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${BRANCH}" --jq .commit.message)"
+            case "$msg" in
+              "Sign marketplace metadata"*) break ;;
+            esac
+            sleep 1
+          done
+          gh workflow run metadata.yml --repo "${GITHUB_REPOSITORY}" --ref "${BRANCH}"
