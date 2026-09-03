@@ -47,16 +47,32 @@ jobs:
     # (festival-installer/internal/verify/trust.go:12-14), and a fork must
     # never reach it. The fork guard is on `gate` as well; it is repeated
     # here so a future edit cannot attach the environment to a fork job.
-    # The `signing` environment has required reviewers configured
-    # (Settings > Environments > signing). Confirm with
-    # `gh api repos/Obedience-Corp/marketplace/environments --jq
-    # '.environments[].protection_rules'` before relying on it; empty
-    # means unprotected.
+    #
+    # The `signing` environment itself has no required reviewers and no
+    # deployment branch policy (Settings > Environments > signing; confirm
+    # with `gh api repos/Obedience-Corp/marketplace/environments --jq
+    # '.environments[].protection_rules'`). A branch-name deployment policy
+    # cannot substitute for that: since 2025-12-08, GitHub evaluates
+    # environment branch policies for `pull_request`-triggered jobs against
+    # `refs/pull/<n>/merge`, not the PR's head branch, so a `release/*`
+    # policy would never match this job's real trigger and would silently
+    # block every release PR from reaching `signing`
+    # (https://github.blog/changelog/2025-11-07-actions-pull_request_target-and-environment-branch-protections-changes/).
+    # The branch restriction below is the actual gate: it runs on the real
+    # head ref/dispatch ref, which the environment policy cannot see.
     needs: gate
     if: >-
       needs.gate.outputs.needs_sign == 'true' &&
       (github.event_name != 'pull_request' ||
-       github.event.pull_request.head.repo.full_name == github.repository)
+       github.event.pull_request.head.repo.full_name == github.repository) &&
+      (
+        (github.event_name == 'pull_request' &&
+         (github.event.pull_request.head.ref == 'main' ||
+          startsWith(github.event.pull_request.head.ref, 'release/'))) ||
+        (github.event_name == 'workflow_dispatch' &&
+         (github.ref_name == 'main' ||
+          startsWith(github.ref_name, 'release/')))
+      )
     environment: signing
     runs-on: ubuntu-latest
     steps:
