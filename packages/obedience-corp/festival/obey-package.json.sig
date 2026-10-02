@@ -1,1 +1,1 @@
-{"key_id":"obedience-marketplace-2026-01","algorithm":"ed25519","signature":"K7Y2PiM9OaOrHtfiF2HzuCVjxxwpp0Al22V5/szNALRIpY/qTnSlWIZ58TH2GjQZ+/3JKyw2v9cZJijUji6zDw=="}
+{"key_id":"obedience-marketplace-2026-01","algorithm":"ed25519","signature":"fl8OKAz0FLFTJnZu8kiJCnQ4ZJ5tSwGF4bKWGDP2IC11KDejp7ebvniWrm6TwWPodKmyX9MPwQRJnSyK9clHCQ=="}
