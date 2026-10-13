@@ -15,6 +15,11 @@ The official Festival Installer marketplace (`official-obey`): first-party Festi
 Products and plugins here are consumed by `festival marketplace add/refresh/list`,
 `festival install`, and `festival update`.
 
+The `obedience-corp/obey` product resolves stable tags from the public
+`Obedience-Corp/obey-releases` repository. Publish and verify the release
+archives there before merging a marketplace change that exposes a new Obey
+version; the installer discovers the tag as soon as this signed entry is live.
+
 ## Signing contract
 
 Every signed document is stored on disk already canonical (RFC 8785), and its
