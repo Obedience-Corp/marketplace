@@ -214,7 +214,11 @@ func campAppArchiveIdentity(raw []byte, version, target string) (string, error) 
 			if header.Size > 4096 {
 				return "", fmt.Errorf("release identity is oversized")
 			}
-			if err := json.NewDecoder(reader).Decode(&identity); err != nil {
+			identityRaw, err := io.ReadAll(reader)
+			if err != nil {
+				return "", err
+			}
+			if err := json.Unmarshal(identityRaw, &identity); err != nil {
 				return "", err
 			}
 		}

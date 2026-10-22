@@ -38,6 +38,14 @@ jobs:
           go-version: "1.25.6"
       - name: Verify package metadata signatures
         run: go run ./tools/metadata verify
-      - name: Test metadata tooling
+      - name: Test metadata tooling in filesystem isolation
         if: github.event_name != 'push'
-        run: go test ./tools/metadata
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/src:ro" -w /work \
+            golang:1.25.6-bookworm bash -euc '
+              cp -a /src/. /work/
+              rm -f /work/.git
+              go vet ./...
+              go test -race ./tools/metadata
+            '
