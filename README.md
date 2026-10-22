@@ -87,3 +87,37 @@ fresh install has no prior state to compare against. Closing that gap needs a
 signed monotonic timestamp and a maximum-age policy, which this repository
 does not have today. Treat the signatures as an authorship and integrity
 guarantee, not a freshness guarantee.
+
+## Preparing the required Camp App companion
+
+The App's install profile is separate from marketplace discovery. Preparing its
+companion must preserve every existing catalog entry. In particular, released
+Installer0.3.6 rejects unknown `release_source` fields for the entire catalog;
+adding `tag_prefix` to the shared manifest would break existing users.
+
+After publishing the actual stable `camp-app-vX.Y.Z` assets to the public
+`Obedience-Corp/obey-releases` repository, run:
+
+```sh
+go run ./tools/metadata prepare-camp-app X.Y.Z
+```
+
+The command anonymously fetches the published release, checksums and archives. It
+requires the four producer targets, validates archive version/target/source
+identity and matching hashes, and includes Linuxarm64 only when actually present.
+It generates the existing static package-manifest format with exact URLs/hashes,
+adds only `obedience-corp/camp-app` to the catalog/index, and preserves other
+entries and prior releases. A missing/draft/mismatched release or changed bytes
+for an existing version fails before metadata writes. It neither signs nor
+publishes. Review the generated diff and use the existing signing workflow.
+
+Until those public bytes exist, keep the current six-entry catalog unchanged;
+there are no placeholder hashes or publication timestamps. Apple signing is not
+required by this preparation; artifact checksums and official metadata signatures
+remain required. Fixture tests do not establish native or published acceptance.
+
+Run filesystem mutation tests in a disposable container, copying the checkout
+inside it before `go vet ./...` and `go test -race ./...`. The optional
+`METADATA_TEST_EXPORT` setting belongs only to the test harness and exports fake
+metadata for released-Installer schema checks; production preparation always
+uses the public GitHub endpoint.
