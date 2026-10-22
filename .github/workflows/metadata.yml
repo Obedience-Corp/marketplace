@@ -45,7 +45,7 @@ jobs:
             -v "$GITHUB_WORKSPACE:/src:ro" -w /work \
             golang:1.25.6-bookworm bash -euc '
               cp -a /src/. /work/
-              rm -f /work/.git
+              rm -rf /work/.git
               go vet ./...
               go test -race ./tools/metadata
             '

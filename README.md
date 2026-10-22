@@ -92,7 +92,7 @@ guarantee, not a freshness guarantee.
 
 The App's install profile is separate from marketplace discovery. Preparing its
 companion must preserve every existing catalog entry. In particular, released
-Installer0.3.6 rejects unknown `release_source` fields for the entire catalog;
+Installer 0.3.6 rejects unknown `release_source` fields for the entire catalog;
 adding `tag_prefix` to the shared manifest would break existing users.
 
 After publishing the actual stable `camp-app-vX.Y.Z` assets to the public
@@ -103,8 +103,9 @@ go run ./tools/metadata prepare-camp-app X.Y.Z
 ```
 
 The command anonymously fetches the published release, checksums and archives. It
-requires the four producer targets, validates archive version/target/source
-identity and matching hashes, and includes Linuxarm64 only when actually present.
+requires macOS arm64/amd64, Linux amd64 and Windows amd64; validates archive
+version/target/source identity and matching hashes; and includes Linux arm64 only
+when actually present.
 It generates the existing static package-manifest format with exact URLs/hashes,
 adds only `obedience-corp/camp-app` to the catalog/index, and preserves other
 entries and prior releases. A missing/draft/mismatched release or changed bytes
