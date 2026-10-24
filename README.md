@@ -54,11 +54,14 @@ Signing happens automatically:
   `release/*` branch through the `signing` environment, then canonicalizes, signs,
   and pushes onto the pull request branch.
 - After a successful `sign`, the workflow dispatches **Metadata**
-  (`workflow_dispatch`) against the same branch. That is what records the
-  required `verify` check on the signed commit. Do not approve the
+  (`workflow_dispatch`) against the same branch to verify the signed commit.
+  Confirm that the pull request itself reports the required `verify` check as
+  passed before merging. A successful dispatch alone is insufficient if GitHub
+  still reports that check as expected. Do not approve the
   `github-actions[bot]` pull_request runs that appear as `action_required`
   after the signature push: they have no jobs and are not the required
-  check. The signing workflow dispatches the required verification automatically.
+  check. The signing workflow dispatches verification automatically; investigate
+  a missing PR check association without bypassing branch protection.
 - **Sign metadata** can also be run manually from the Actions tab against any
   allowed `main` or `release/*` branch (with the same repository and branch
   checks when signing is needed). There is no push-to-`main` trigger: `main` is
