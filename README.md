@@ -15,6 +15,10 @@ The official Festival Installer marketplace (`official-obey`): first-party Festi
 Products and plugins here are consumed by `festival marketplace add/refresh/list`,
 `festival install`, and `festival update`.
 
+Festival App's selected dependency profile determines its setup and update set.
+Catalog membership does not make a plugin an App requirement. Keep optional
+plugins available here for users and other consumers to discover independently.
+
 The registered `obedience-corp/obey` product resolves stable tags dynamically
 from the public `Obedience-Corp/obey-releases` repository. Publish and verify the
 release archives and checksums there first. Normal Installer release discovery
