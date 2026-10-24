@@ -15,10 +15,20 @@ The official Festival Installer marketplace (`official-obey`): first-party Festi
 Products and plugins here are consumed by `festival marketplace add/refresh/list`,
 `festival install`, and `festival update`.
 
-The `obedience-corp/obey` product resolves stable tags from the public
-`Obedience-Corp/obey-releases` repository. Publish and verify the release
-archives there before merging a marketplace change that exposes a new Obey
-version; the installer discovers the tag as soon as this signed entry is live.
+Festival App's selected dependency profile determines its setup and update set.
+Catalog membership does not make a plugin an App requirement. Keep optional
+plugins available here for users and other consumers to discover independently.
+
+The registered `obedience-corp/obey` product resolves stable tags dynamically
+from the public `Obedience-Corp/obey-releases` repository. Publish and verify the
+release archives and checksums there first. Normal Installer release discovery
+then finds a new stable tag without a per-version marketplace manifest change.
+Change the signed marketplace entry when its release routing or package contract
+changes, rather than to announce each Obey version.
+
+The Festival suite is a co-tested distribution of Camp, Fest and the Festival
+Installer. Its suite release version and the individual commands' component
+versions are distinct; do not require every command to report the suite version.
 
 ## Signing contract
 
@@ -40,19 +50,23 @@ Signing happens automatically:
 - The **Sign metadata** workflow runs on every same-repository pull request.
   A `gate` job verifies without the private key. If signatures already
   match, signing is skipped and the `signing` environment is not requested.
-  If they do not, `sign` waits for approval in that environment, then
-  canonicalizes, signs, and pushes onto the pull request branch.
+  If they do not, `sign` runs for an allowed same-repository `main` or
+  `release/*` branch through the `signing` environment, then canonicalizes, signs,
+  and pushes onto the pull request branch.
 - After a successful `sign`, the workflow dispatches **Metadata**
-  (`workflow_dispatch`) against the same branch. That is what records the
-  required `verify` check on the signed commit. Do not approve the
+  (`workflow_dispatch`) against the same branch to verify the signed commit.
+  Confirm that the pull request itself reports the required `verify` check as
+  passed before merging. A successful dispatch alone is insufficient if GitHub
+  still reports that check as expected. Do not approve the
   `github-actions[bot]` pull_request runs that appear as `action_required`
   after the signature push: they have no jobs and are not the required
-  check. The one intended click is the `signing` environment review.
+  check. The signing workflow dispatches verification automatically; investigate
+  a missing PR check association without bypassing branch protection.
 - **Sign metadata** can also be run manually from the Actions tab against any
-  branch (also gated by the same environment approval when signing is
-  needed). There is no push-to-`main` trigger: `main` is protected and only
-  accepts pull requests, so there is nothing for a push-triggered backstop
-  to do.
+  allowed `main` or `release/*` branch (with the same repository and branch
+  checks when signing is needed). There is no push-to-`main` trigger: `main` is
+  protected and only accepts pull requests, so there is nothing for a
+  push-triggered backstop to do.
 
 The **Metadata** workflow verifies every signed document on every pull
 request, on `workflow_dispatch`, and again on every push to `main` that
@@ -64,17 +78,15 @@ To change a manifest by hand, edit it, open a pull request, and let the
 workflow canonicalize and sign it. Do not commit a signature you generated
 locally: the release key is not distributed.
 
-Note on trust: signing a document requires two things together. First, a
-same-repository branch: GitHub builds the **Sign metadata** workflow from
-the pull request's own branch, so a fork can never reach the signing secret
-(the workflow also checks this explicitly). Second, approval of the
-`signing` GitHub Environment by its required reviewer before
-`FESTIVAL_METADATA_SIGNING_KEY` is exposed to any job step. That reviewer
-is configured; confirm with
-`gh api repos/Obedience-Corp/marketplace/environments --jq
-'.environments[].protection_rules'` if the pause-for-approval behavior
-ever disappears. An empty result means the environment is unprotected.
-Separately, `main` accepts only pull requests whose `verify` check has
+Note on trust: only a same-repository branch can reach the signing job; fork
+pull requests cannot access the secret. The workflow additionally restricts
+signing to `main` or `release/*` branches. The current `signing` environment has
+no required reviewers or deployment branch policy, so its name does not imply
+a separate approval. Confirm the live configuration with
+`gh api repos/Obedience-Corp/marketplace/environments/signing --jq
+'{protection_rules,deployment_branch_policy}'` when reviewing this procedure.
+These are the existing controls; this documentation does not change them.
+Separately, `main` accepts only pull requests whose required `verify` check has
 passed; nothing, including this repository's own workflows, pushes to
 `main` directly.
 
