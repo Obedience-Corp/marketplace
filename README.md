@@ -15,6 +15,39 @@ The official Festival Installer marketplace (`official-obey`): first-party Festi
 Products and plugins here are consumed by `festival marketplace add/refresh/list`,
 `festival install`, and `festival update`.
 
+## Automatic release publication
+
+Festival's `marketplace-reconcile.yml` workflow runs on publication dispatches
+and every half hour. It uses Festival's existing marketplace publisher credential;
+the signing key stays here. It prepares registered static releases, opens or
+resumes a deterministic `release/catalog-*` PR, waits for the required `verify`
+check on the final signed revision, verifies its exact payload and signatures,
+merges through normal branch protection, and reads back `main`. A failed package
+does not prevent the other package from being reconciled. Rerun the workflow to
+recover; no new component tag is needed.
+
+The metadata preparation commands used by that publisher are:
+
+```sh
+go run ./tools/metadata reconcile camp-app latest
+go run ./tools/metadata reconcile festival latest
+```
+
+An exact stable version can replace `latest`. Discovery selects published stable
+releases within the registered product tag namespace, including paginated history.
+Duplicate and delayed older events are no-ops. New releases preserve prior
+manifest history and unrelated catalog entries. Archive and checksum validation
+happens before metadata writes. The suite producer publishes its existing release
+operator's `obey-package.json` asset so reconciliation can recover without
+reconstructing its component versions. Older suite releases without that asset
+require the existing suite post-publish recovery before a missing entry can be
+reconciled. These commands prepare files; the Festival publisher owns automatic
+signed promotion and public readback.
+
+Dynamic Obey/plugin entries need no per-version metadata change. New package
+registration and changes to package routing, workflows or trust remain reviewed
+changes, outside routine version promotion.
+
 Festival App's selected dependency profile determines its setup and update set.
 Catalog membership does not make a plugin an App requirement. Keep optional
 plugins available here for users and other consumers to discover independently.
@@ -107,8 +140,9 @@ companion must preserve every existing catalog entry. In particular, released
 Installer 0.3.6 rejects unknown `release_source` fields for the entire catalog;
 adding `tag_prefix` to the shared manifest would break existing users.
 
-After publishing the actual stable `camp-app-vX.Y.Z` assets to the public
-`Obedience-Corp/obey-releases` repository, run:
+Camp App publication requests automatic promotion after publishing its
+`camp-app-vX.Y.Z` public assets. Scheduled reconciliation also finds releases whose
+publication callback was missed. For local preparation and diagnosis, run:
 
 ```sh
 go run ./tools/metadata prepare-camp-app X.Y.Z
@@ -122,10 +156,11 @@ It generates the existing static package-manifest format with exact URLs/hashes,
 adds only `obedience-corp/camp-app` to the catalog/index, and preserves other
 entries and prior releases. A missing/draft/mismatched release or changed bytes
 for an existing version fails before metadata writes. It neither signs nor
-publishes. Review the generated diff and use the existing signing workflow.
+publishes. The automatic publisher uses the existing signing workflow and checks
+the resulting signed revision before merging.
 
-Until those public bytes exist, keep the current six-entry catalog unchanged;
-there are no placeholder hashes or publication timestamps. Apple signing is not
+Until public bytes exist, retain the previous catalog version; there are no
+placeholder hashes or publication timestamps. Apple signing is not
 required by this preparation; artifact checksums and official metadata signatures
 remain required. Fixture tests do not establish native or published acceptance.
 

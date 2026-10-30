@@ -294,7 +294,13 @@ func writeCampAppDocuments(root string, release map[string]any, commit string) e
 		return err
 	}
 	if manifestChanged || marketplaceChanged || indexChanged {
-		index["updatedAt"] = time.Now().UTC().Format(time.RFC3339)
+		// Publication retries must reproduce the exact prepared payload while a
+		// signed PR is pending. Preserve a newer catalog timestamp for old events.
+		published, _ := release["published_at"].(string)
+		prior, _ := index["updatedAt"].(string)
+		if published > prior {
+			index["updatedAt"] = published
+		}
 	}
 	for _, document := range []struct {
 		path  string
