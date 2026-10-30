@@ -32,6 +32,19 @@ type detachedSignature struct {
 }
 
 func main() {
+	if len(os.Args) >= 3 && len(os.Args) <= 4 && os.Args[1] == "reconcile" {
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+		defer stop()
+		version := "latest"
+		if len(os.Args) == 4 {
+			version = os.Args[3]
+		}
+		if err := reconcileRelease(ctx, ".", os.Args[2], version, publicReleaseClient()); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
 	if len(os.Args) == 3 && os.Args[1] == "prepare-camp-app" {
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 		defer stop()
@@ -42,7 +55,7 @@ func main() {
 		return
 	}
 	if len(os.Args) != 2 || (os.Args[1] != "sign" && os.Args[1] != "verify") {
-		fmt.Fprintln(os.Stderr, "usage: go run ./tools/metadata <sign|verify> | prepare-camp-app <stable-version>")
+		fmt.Fprintln(os.Stderr, "usage: go run ./tools/metadata <sign|verify> | prepare-camp-app <stable-version> | reconcile <camp-app|festival> [stable-version|latest]")
 		os.Exit(2)
 	}
 	var err error
