@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,13 +18,19 @@ import (
 
 type releaseRoute struct {
 	repo, prefix, packageID string
+	// noneYetIsCurrent lets `latest` report a product whose first stable release is
+	// still pending as current, instead of failing every scheduled reconcile.
+	noneYetIsCurrent bool
 }
+
+var errNoPublishedRelease = errors.New("no published stable release")
 
 // Only established static packages need catalog writes. Dynamic release_source
 // packages continue discovering releases through their signed routing contract.
 var releaseRoutes = map[string]releaseRoute{
-	"camp-app": {"Obedience-Corp/obey-releases", "camp-app-v", campAppID},
-	"festival": {"Obedience-Corp/festival", "v", "obedience-corp/festival"},
+	"camp-app":     {repo: "Obedience-Corp/obey-releases", prefix: "camp-app-v", packageID: campAppID},
+	"festival":     {repo: "Obedience-Corp/festival", prefix: "v", packageID: "obedience-corp/festival"},
+	"festival-app": {repo: "Obedience-Corp/obey-releases", prefix: "app-v", packageID: festivalAppID, noneYetIsCurrent: true},
 }
 
 func reconcileRelease(ctx context.Context, root, name, version string, client *http.Client) error {
@@ -32,11 +39,21 @@ func reconcileRelease(ctx context.Context, root, name, version string, client *h
 		return fmt.Errorf("no registered static release route for %q", name)
 	}
 	if version == "latest" {
-		var err error
-		version, err = latestPublishedVersion(ctx, client, route)
+		latest, err := latestPublishedVersion(ctx, client, route)
+		if errors.Is(err, errNoPublishedRelease) && route.noneYetIsCurrent {
+			current, cerr := catalogVersion(root, route.packageID)
+			if cerr != nil {
+				return cerr
+			}
+			if current == "" {
+				fmt.Printf("%s: no published stable %s release yet; catalog unchanged\n", route.packageID, route.prefix)
+				return nil
+			}
+		}
 		if err != nil {
 			return err
 		}
+		version = latest
 	}
 	if _, err := versionParts(version); err != nil {
 		return err
@@ -58,10 +75,16 @@ func reconcileRelease(ctx context.Context, root, name, version string, client *h
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	if name == "camp-app" {
+	switch name {
+	case "camp-app":
 		return prepareCampApp(ctx, root, version, client)
+	case "festival-app":
+		return prepareFestivalApp(ctx, root, version, client)
+	case "festival":
+		return prepareFestival(ctx, root, version, client)
+	default:
+		return fmt.Errorf("no preparer registered for %q", name)
 	}
-	return prepareFestival(ctx, root, version, client)
 }
 
 func latestPublishedVersion(ctx context.Context, client *http.Client, route releaseRoute) (string, error) {
@@ -94,7 +117,7 @@ func latestPublishedVersion(ctx context.Context, client *http.Client, route rele
 		}
 	}
 	if best == "" {
-		return "", fmt.Errorf("no published stable %s release in %s", route.prefix, route.repo)
+		return "", fmt.Errorf("no published stable %s release in %s: %w", route.prefix, route.repo, errNoPublishedRelease)
 	}
 	return best, nil
 }

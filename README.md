@@ -169,3 +169,31 @@ inside it before `go vet ./...` and `go test -race ./...`. The optional
 `METADATA_TEST_EXPORT` setting belongs only to the test harness and exports fake
 metadata for released-Installer schema checks; production preparation always
 uses the public GitHub endpoint.
+
+## Preparing Festival App
+
+The source is published stable `app-vX.Y.Z` releases in `Obedience-Corp/obey-releases`
+only. `app-test-*` builds and the `app-stable` channel release never enter the catalog.
+
+The release must carry five artifacts: the macOS Apple silicon and Intel app bundles
+(`app-bundle`), the Windows installer (`nsis`), the Debian package (`deb`) and the
+AppImage (`appimage`). Each has a `.sig` file whose text must equal its entry in
+`latest.json`, and `latest.json` must point at the same asset URL. Each artifact's
+sha256 is streamed against `SHA256SUMS` with a 512 MiB ceiling and no total timeout.
+Published versions are immutable: changed bytes for an existing version fail before
+any write.
+
+```sh
+go run ./tools/metadata reconcile festival-app X.Y.Z   # or: latest
+```
+
+Before the first stable App release, `latest` prints
+`obedience-corp/festival-app: no published stable app-v release yet; catalog unchanged`
+and exits 0 without changing files. Once the catalog lists the App, a vanished release is
+an error.
+
+Compatibility: the catalog entry is a plain `class: product` entry with `manifest_path`.
+The new artifact kinds live only in the App's own manifest, so released installers keep
+loading the catalog, list the App, and refuse only an App install (`E_INSTALL_TARGET` or
+`E_PLUGIN_TARGET`). Installers older than the App-aware release cannot install it.
+
