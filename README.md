@@ -107,6 +107,22 @@ touches a signed file, `tools/metadata/**`, `go.mod`, `go.sum`, or the
 workflow itself. Its `verify` check is required on `main`, so a pull
 request cannot merge without it passing.
 
+The same `verify` job also runs the released installers listed in
+`tools/metadata/released_installers_test.go` against the pull request's catalog.
+It serves an unsigned copy under a non-official source name, because that is
+the only form a released binary accepts for unsigned content. A catalog that
+any listed installer cannot load, list or browse fails the check, and merging is
+publication. Add a version to the list when a published Festival App release
+bundles an installer that predates App support, or when an App's minimum suite
+moves to one. The comment at the top of that file has the commands that find
+them. To run it locally:
+
+```sh
+docker run --rm -v "$PWD:/src:ro" -w /work golang:1.25.6-bookworm bash -euc '
+  cp -a /src/. /work/ && rm -rf /work/.git
+  go test -tags released_installers -count=1 -v -run "^TestReleasedInstaller" ./tools/metadata'
+```
+
 To change a manifest by hand, edit it, open a pull request, and let the
 workflow canonicalize and sign it. Do not commit a signature you generated
 locally: the release key is not distributed.
@@ -169,3 +185,31 @@ inside it before `go vet ./...` and `go test -race ./...`. The optional
 `METADATA_TEST_EXPORT` setting belongs only to the test harness and exports fake
 metadata for released-Installer schema checks; production preparation always
 uses the public GitHub endpoint.
+
+## Preparing Festival App
+
+The source is published stable `app-vX.Y.Z` releases in `Obedience-Corp/obey-releases`
+only. `app-test-*` builds and the `app-stable` channel release never enter the catalog.
+
+The release must carry five artifacts: the macOS Apple silicon and Intel app bundles
+(`app-bundle`), the Windows installer (`nsis`), the Debian package (`deb`) and the
+AppImage (`appimage`). Each has a `.sig` file whose text must equal its entry in
+`latest.json`, and `latest.json` must point at the same asset URL. Each artifact's
+sha256 is streamed against `SHA256SUMS` with a 512 MiB ceiling and no total timeout.
+Published versions are immutable: changed bytes for an existing version fail before
+any write.
+
+```sh
+go run ./tools/metadata reconcile festival-app X.Y.Z   # or: latest
+```
+
+Before the first stable App release, `latest` prints
+`obedience-corp/festival-app: no published stable app-v release yet; catalog unchanged`
+and exits 0 without changing files. Once the catalog lists the App, a vanished release is
+an error.
+
+Compatibility: the catalog entry is a plain `class: product` entry with `manifest_path`.
+The new artifact kinds live only in the App's own manifest, so released installers keep
+loading the catalog, list the App, and refuse only an App install (`E_INSTALL_TARGET` or
+`E_PLUGIN_TARGET`). Installers older than the App-aware release cannot install it.
+

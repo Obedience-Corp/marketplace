@@ -55,7 +55,7 @@ func main() {
 		return
 	}
 	if len(os.Args) != 2 || (os.Args[1] != "sign" && os.Args[1] != "verify") {
-		fmt.Fprintln(os.Stderr, "usage: go run ./tools/metadata <sign|verify> | prepare-camp-app <stable-version> | reconcile <camp-app|festival> [stable-version|latest]")
+		fmt.Fprintln(os.Stderr, "usage: go run ./tools/metadata <sign|verify> | prepare-camp-app <stable-version> | reconcile <camp-app|festival|festival-app> [stable-version|latest]")
 		os.Exit(2)
 	}
 	var err error
