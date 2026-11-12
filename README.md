@@ -107,6 +107,22 @@ touches a signed file, `tools/metadata/**`, `go.mod`, `go.sum`, or the
 workflow itself. Its `verify` check is required on `main`, so a pull
 request cannot merge without it passing.
 
+The same `verify` job also runs the released installers listed in
+`tools/metadata/released_installers_test.go` against the pull request's catalog.
+It serves an unsigned copy under a non-official source name, because that is
+the only form a released binary accepts for unsigned content. A catalog that
+any listed installer cannot load, list or browse fails the check, and merging is
+publication. Add a version to the list when a published Festival App release
+bundles an installer that predates App support, or when an App's minimum suite
+moves to one. The comment at the top of that file has the commands that find
+them. To run it locally:
+
+```sh
+docker run --rm -v "$PWD:/src:ro" -w /work golang:1.25.6-bookworm bash -euc '
+  cp -a /src/. /work/ && rm -rf /work/.git
+  go test -tags released_installers -count=1 -v -run "^TestReleasedInstaller" ./tools/metadata'
+```
+
 To change a manifest by hand, edit it, open a pull request, and let the
 workflow canonicalize and sign it. Do not commit a signature you generated
 locally: the release key is not distributed.

@@ -20,6 +20,13 @@ import (
 	"time"
 )
 
+// To re-derive the list: every published app- release in Obedience-Corp/obey-releases
+// names its bundled installer ("Bundled Festival Installer: X") and minimum suite
+// ("Minimum Festival Suite: Y") in its body; resolve a suite tag to its installer with
+//   git -C festival ls-tree v<suite> festival-installer   (then describe that commit
+//   in festival-installer). Pin the festival-linux-amd64 and -arm64 sha256 from the
+//   installer release's checksums.txt.
+//
 // The guard runs every released installer that predates Festival App support against
 // this repository's catalog with the App entry present. A catalog such a binary cannot
 // parse breaks every operation on that source, so this must pass before a merge.
