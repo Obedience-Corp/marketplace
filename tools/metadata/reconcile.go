@@ -292,6 +292,10 @@ func prepareFestival(ctx context.Context, root, version string, client *http.Cli
 	return nil
 }
 
+// publicArtifactLimit caps one streamed public artifact. A variable only so tests can
+// prove the oversize path without 512 MiB of fixture bytes.
+var publicArtifactLimit int64 = 512 << 20
+
 func verifyPublicArtifact(ctx context.Context, client *http.Client, url, digest string) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -306,7 +310,7 @@ func verifyPublicArtifact(ctx context.Context, client *http.Client, url, digest 
 		return fmt.Errorf("download %s: HTTP %d", url, response.StatusCode)
 	}
 	hash := sha256.New()
-	const limit = 512 << 20
+	limit := publicArtifactLimit
 	n, err := io.Copy(hash, io.LimitReader(response.Body, limit+1))
 	if err != nil {
 		return err
