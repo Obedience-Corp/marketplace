@@ -39,7 +39,7 @@ func main() {
 		if len(os.Args) == 4 {
 			version = os.Args[3]
 		}
-		if err := reconcileRelease(ctx, ".", os.Args[2], version, publicReleaseClient()); err != nil {
+		if err := reconcileRelease(ctx, ".", os.Args[2], version, publicReleaseClient(githubAPIToken())); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
@@ -48,7 +48,7 @@ func main() {
 	if len(os.Args) == 3 && os.Args[1] == "prepare-camp-app" {
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 		defer stop()
-		if err := prepareCampApp(ctx, ".", os.Args[2], publicReleaseClient()); err != nil {
+		if err := prepareCampApp(ctx, ".", os.Args[2], publicReleaseClient(githubAPIToken())); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
@@ -270,4 +270,12 @@ func writeAtomic(path string, data []byte, mode os.FileMode) error {
 		return err
 	}
 	return os.Rename(tmp, path)
+}
+
+// githubAPIToken lets CI authenticate release reads with its existing token.
+func githubAPIToken() string {
+	if token := os.Getenv("GH_TOKEN"); token != "" {
+		return token
+	}
+	return os.Getenv("GITHUB_TOKEN")
 }

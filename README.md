@@ -164,7 +164,10 @@ publication callback was missed. For local preparation and diagnosis, run:
 go run ./tools/metadata prepare-camp-app X.Y.Z
 ```
 
-The command anonymously fetches the published release, checksums and archives. It
+The command reads the published release from the GitHub API, authenticating with
+`GH_TOKEN` or `GITHUB_TOKEN` when one is set, because anonymous API reads from shared
+runner addresses hit GitHub's rate limit. It downloads checksums and archives
+anonymously, so they still prove the bytes are public. It
 requires macOS arm64/amd64, Linux amd64 and Windows amd64; validates archive
 version/target/source identity and matching hashes; and includes Linux arm64 only
 when actually present.

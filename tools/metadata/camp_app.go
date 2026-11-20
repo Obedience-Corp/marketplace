@@ -19,6 +19,7 @@ import (
 )
 
 const campAppID = "obedience-corp/camp-app"
+const githubAPIHost = "api.github.com"
 const campAppReleaseRoot = "https://github.com/Obedience-Corp/obey-releases/releases/download/"
 
 var stableVersion = regexp.MustCompile(`^[0-9]+\.[0-9]+\.[0-9]+$`)
@@ -37,8 +38,29 @@ type releaseAsset struct {
 	URL  string `json:"browser_download_url"`
 }
 
-func publicReleaseClient() *http.Client {
-	return &http.Client{Timeout: 60 * time.Second, CheckRedirect: func(req *http.Request, via []*http.Request) error {
+// githubAPIAuth authenticates only GitHub REST API reads. Release listings from
+// anonymous runner IPs share a low rate limit, while artifact downloads stay
+// anonymous so they keep proving the bytes are public.
+type githubAPIAuth struct {
+	base  http.RoundTripper
+	token string
+}
+
+func (a githubAPIAuth) RoundTrip(req *http.Request) (*http.Response, error) {
+	if a.token == "" || req.URL.Scheme != "https" || req.URL.Host != githubAPIHost {
+		return a.base.RoundTrip(req)
+	}
+	authed := req.Clone(req.Context())
+	authed.Header.Set("Authorization", "Bearer "+a.token)
+	return a.base.RoundTrip(authed)
+}
+
+func publicReleaseClient(apiToken string) *http.Client {
+	return newPublicReleaseClient(http.DefaultTransport, apiToken)
+}
+
+func newPublicReleaseClient(base http.RoundTripper, apiToken string) *http.Client {
+	return &http.Client{Timeout: 60 * time.Second, Transport: githubAPIAuth{base: base, token: apiToken}, CheckRedirect: func(req *http.Request, via []*http.Request) error {
 		if req.URL.Scheme != "https" || len(via) >= 10 {
 			return fmt.Errorf("refuse unsafe public release redirect")
 		}
